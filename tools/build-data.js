@@ -101,7 +101,6 @@ const num = v => (v === '' || v == null || isNaN(+v) ? 0 : +v);
   const last = matches[matches.length - 1] || null;
 
   const data = {
-    generated: new Date().toISOString(),
     current: seasons[seasons.length - 1],
     seasons,
     lastMatch: last,

@@ -1,12 +1,16 @@
 # Avondpartij website
 
+Live: https://avondpartij.github.io/avondpartij/
+
 ## Cijfers bijwerken na een match
 
 1. Vul de match in de Excel in zoals altijd en sla op.
-2. Dubbelklik op `update-stats.bat`. Dat leest de Excel en schrijft `data/stats.js`.
-   - De Excel wordt standaard gezocht op `C:\Users\elias\Desktop\Avondpartij\Statistieken_Avondpartij_totaal.xlsm`.
-   - Staat hij ergens anders? Sleep het Excel-bestand op `update-stats.bat`.
-3. Zet de nieuwe `data/stats.js` online (zie hieronder).
+2. Dubbelklik op `update-stats.bat`.
+   - Het leest de Excel en maakt `data/stats.js` opnieuw.
+   - Daarna vraagt het "Nieuwe cijfers meteen online zetten?". Typ `j` en druk Enter.
+   - Binnen een paar minuten staan de nieuwe cijfers op de website.
+3. Staat de Excel niet op `C:\Users\elias\Desktop\Avondpartij\Statistieken_Avondpartij_totaal.xlsm`?
+   Sleep het Excel-bestand dan op `update-stats.bat`.
 
 ## Lokaal bekijken
 
@@ -16,11 +20,15 @@ node tools/serve.js
 
 Open daarna http://localhost:5173.
 
-## Online zetten met GitHub Pages
+## Andere aanpassingen online zetten
 
-1. Maak op GitHub een nieuwe repository (bv. `avondpartij`) en zet de inhoud van deze map erin.
-2. Ga naar Settings, dan Pages, kies "Deploy from a branch", branch `main`, map `/ (root)`.
-3. Na elke update: commit en push `data/stats.js`. GitHub Pages zet het binnen een minuut online.
+Heb je iets anders aangepast (tekst, kleuren, foto's)? Open een terminal in deze map en typ:
+
+```
+git add -A
+git commit -m "Beschrijving van de aanpassing"
+git push
+```
 
 ## Nieuwe hoofden of foto's
 
