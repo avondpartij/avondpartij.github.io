@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="nl-BE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avondpartij – statistieken</title>
+  <meta name="description" content="Goals, assists en caps van alle spelers van zaalvoetbalclub Avondpartij uit Affligem.">
+  <meta name="theme-color" content="#2F2830">
+  <link rel="icon" href="assets/logo-basic.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#spelers">Ga naar de spelerscijfers</a>
+
+  <header class="topbar">
+    <a class="topbar__brand" href="#top" aria-label="Avondpartij, naar boven">
+      <img src="assets/patch.png" alt="" width="760" height="338">
+    </a>
+    <nav aria-label="Hoofdmenu">
+      <a href="#spelers">Spelers</a>
+      <a href="#club">Club</a>
+    </nav>
+  </header>
+
+  <!-- Opening: lichtschilderen. De cursor laat een lichtspoor na dat weer donker wordt; klikken is een flits. -->
+  <section class="night" id="top" aria-labelledby="titel">
+    <img class="night__photo" src="assets/huddle.jpg" width="1400" height="1867"
+         alt="De spelers van Avondpartij in een kring, van onderuit gefotografeerd tegen de lucht.">
+    <canvas class="night__dark" aria-hidden="true"></canvas>
+    <canvas class="night__glow" aria-hidden="true"></canvas>
+    <div class="night__flash" aria-hidden="true"></div>
+
+    <button class="lights" type="button" aria-pressed="false">
+      <span class="lights__bulb" aria-hidden="true"></span>
+      <span class="lights__label">Licht aan</span>
+    </button>
+
+    <div class="night__content">
+      <h1 id="titel">Avondpartij</h1>
+      <p class="night__sub">Zaalvoetbalclub uit Affligem</p>
+      <p class="night__last" id="laatste"></p>
+    </div>
+  </section>
+
+  <main>
+    <!-- Spelers -->
+    <section class="players" id="spelers" aria-labelledby="spelers-titel">
+      <div class="wrap">
+        <div class="players__head">
+          <h2 id="spelers-titel">Spelers</h2>
+        </div>
+
+        <div class="controls" role="group" aria-label="Filters">
+          <div class="seg" role="radiogroup" aria-label="Seizoen" id="seizoenen"></div>
+          <div class="seg seg--sort" role="radiogroup" aria-label="Sorteer op" id="sorteer"></div>
+        </div>
+
+        <ol class="podium" id="podium" aria-label="Top drie"></ol>
+
+        <div class="board" id="board">
+          <img class="board__peek" id="peek" alt="" aria-hidden="true" width="420" height="420">
+          <table class="table">
+            <caption class="sr-only" id="tabel-titel">Spelersklassement</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-rank"><span class="sr-only">Plaats</span>#</th>
+                <th scope="col" class="col-name">Speler</th>
+                <th scope="col" class="col-num" data-key="c"></th>
+                <th scope="col" class="col-num" data-key="g"></th>
+                <th scope="col" class="col-num" data-key="a"></th>
+                <th scope="col" class="col-num" data-key="ga"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hooghouden: de hoofden als ballen -->
+    <section class="keepy" id="hooghouden" aria-labelledby="keepy-titel">
+      <div class="wrap">
+        <div class="keepy__head">
+          <h2 id="keepy-titel">Hooghouden</h2>
+          <div class="keepy__score">
+            <span class="chip"><span class="chip__k">Reeks</span><span class="chip__v" id="k-reeks">0</span></span>
+            <span class="chip chip--gold" aria-live="polite"><span class="chip__k">Record</span><span class="chip__v" id="k-record">0</span></span>
+          </div>
+        </div>
+        <div class="court" id="court">
+          <div class="court__lines" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Club -->
+    <section class="club" id="club" aria-labelledby="club-titel">
+      <div class="wrap">
+        <h2 id="club-titel">De club in cijfers</h2>
+
+        <div class="club__grid">
+          <div class="tally">
+            <div class="tally__big">
+              <div><span class="big" id="c-matchen"></span><span class="lbl">matchen</span></div>
+              <div><span class="big" id="c-voor"></span><span class="lbl">goals gemaakt</span></div>
+              <div><span class="big" id="c-tegen"></span><span class="lbl">goals tegen</span></div>
+            </div>
+            <div class="wdl" id="c-wdl" role="img"></div>
+            <ul class="wdl__legend" id="c-wdl-legend"></ul>
+          </div>
+
+          <figure class="club__photo">
+            <img src="assets/truitjes.jpg" width="1000" height="1333" loading="lazy"
+                 alt="Drie truitjes van Avondpartij aan een doelpaal, met rugnummers 9 en 7.">
+          </figure>
+        </div>
+
+        <h3 class="club__h3">Per seizoen</h3>
+        <div class="seasons-table-wrap">
+          <table class="seasons-table">
+            <thead>
+              <tr>
+                <th scope="col">Seizoen</th>
+                <th scope="col">Matchen</th>
+                <th scope="col">Gewonnen</th>
+                <th scope="col">Gelijk</th>
+                <th scope="col">Verloren</th>
+                <th scope="col">Goals</th>
+                <th scope="col">Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="c-seizoenen"></tbody>
+          </table>
+        </div>
+
+        <div class="records">
+          <div>
+            <h3 class="club__h3">Records</h3>
+            <dl class="records__list" id="c-records"></dl>
+          </div>
+          <div>
+            <h3 class="club__h3">Aller tijden</h3>
+            <ul class="leaders" id="c-leaders"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <img src="assets/logo-basic.jpg" alt="" width="56" height="56" loading="lazy">
+    <p id="bijgewerkt"></p>
+  </footer>
+
+  <!-- Spelerskaart -->
+  <dialog class="sheet" id="kaart" aria-labelledby="kaart-naam">
+    <div class="flip" id="flip">
+      <div class="flip__back" aria-hidden="true">
+        <img src="assets/patch.png" alt="" width="760" height="338">
+      </div>
+      <article class="pcard" id="pcard"></article>
+    </div>
+    <div class="sheet__nav">
+      <button type="button" class="btn" id="vorige">Vorige speler</button>
+      <button type="button" class="btn btn--dark" id="sluit">Sluiten</button>
+      <button type="button" class="btn" id="volgende">Volgende speler</button>
+    </div>
+  </dialog>
+
+  <noscript><p class="noscript">Zet JavaScript aan om de cijfers te zien.</p></noscript>
+
+  <script src="data/stats.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

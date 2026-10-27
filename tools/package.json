@@ -1,0 +1,11 @@
+{
+  "name": "avondpartij-stats-tools",
+  "private": true,
+  "description": "Zet de Avondpartij-Excel om naar data/stats.js",
+  "scripts": {
+    "build": "node build-data.js"
+  },
+  "dependencies": {
+    "exceljs": "4.4.0"
+  }
+}
