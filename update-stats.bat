@@ -1,5 +1,5 @@
 @echo off
-rem Werk de website bij met de laatste cijfers uit de Excel en zet ze online.
+rem Werk de website bij: nieuwe cijfers uit de Excel, en nieuwe foto's of hoofden in de map assets.
 rem Sleep eventueel een ander Excel-bestand op dit bestand om dat te gebruiken.
 cd /d "%~dp0tools"
 if not exist node_modules (
@@ -11,20 +11,20 @@ if errorlevel 1 goto einde
 
 cd /d "%~dp0"
 echo.
-set /p ONLINE=Nieuwe cijfers meteen online zetten? (j/n):
+set /p ONLINE=Alles meteen online zetten? (j/n):
 if /i not "%ONLINE%"=="j" goto einde
 
-git add data/stats.js
+git add -A
 git diff --cached --quiet && (
-  echo Geen nieuwe cijfers: de website is al up-to-date.
+  echo Niets nieuws: de website is al up-to-date.
   goto einde
 )
-git commit -q -m "Cijfers bijgewerkt"
+git commit -q -m "Website bijgewerkt"
 git push -q
 if errorlevel 1 (
   echo Online zetten mislukt. Controleer je internetverbinding en probeer opnieuw.
 ) else (
-  echo Klaar! Binnen een paar minuten staat alles op https://avondpartij.github.io/avondpartij/
+  echo Klaar! Binnen een paar minuten staat alles op https://avondpartij.github.io/
 )
 
 :einde

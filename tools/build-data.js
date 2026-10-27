@@ -8,16 +8,23 @@ const ExcelJS = require('exceljs');
 
 const DEFAULT_EXCEL = 'C:\\Users\\elias\\Desktop\\Avondpartij\\Statistieken_Avondpartij_totaal.xlsm';
 
-// Spelers met een uitgeknipt hoofd (assets/head-*.png) of een foto.
-const FACES = {
-  'Jasper VdP': 'head-jasper.png',
-  'Keane VI': 'head-keane.png',
-  'Maarten M': 'head-maarten.png',
-  'Robbe VL': 'head-robbe.png',
-};
-const PHOTOS = {
-  'Keane VI': 'keane.jpg',
-};
+// Hoofden en foto's worden gevonden op bestandsnaam = spelersnaam uit de Excel:
+//   assets/koppen/Keane VI.png   -> uitgeknipt hoofd (PNG met transparante achtergrond)
+//   assets/fotos/Keane VI.jpg    -> gewone foto (enkel gebruikt als er geen hoofd is)
+const ASSETS = path.join(__dirname, '..', 'assets');
+
+function findImages(folder, exts) {
+  const dir = path.join(ASSETS, folder);
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => exts.includes(path.extname(f).toLowerCase()))
+    .map(f => ({
+      key: path.basename(f, path.extname(f)).trim().toLowerCase(),
+      file: f,
+      url: folder + '/' + encodeURIComponent(f),
+      kb: Math.round(fs.statSync(path.join(dir, f)).size / 1024),
+    }));
+}
 
 function cellValue(cell) {
   let v = cell.value;
@@ -86,10 +93,15 @@ const num = v => (v === '' || v == null || isNaN(+v) ? 0 : +v);
     if (r[0] !== '') active[String(r[0]).trim()] = String(r[1]).toLowerCase() !== 'nee';
   });
 
+  const heads = findImages('koppen', ['.png']);
+  const photos = findImages('fotos', ['.jpg', '.jpeg', '.png', '.webp']);
+  const find = (list, name) => list.find(i => i.key === name.toLowerCase());
+
   const players = {};
   for (const p of perf) {
+    const head = find(heads, p.name), photo = find(photos, p.name);
     const pl = players[p.name] || (players[p.name] = {
-      name: p.name, face: FACES[p.name] || null, photo: PHOTOS[p.name] || null,
+      name: p.name, face: head ? head.url : null, photo: photo ? photo.url : null,
       active: active[p.name] !== false, seasons: {}, games: [],
     });
     const s = pl.seasons[p.s] || (pl.seasons[p.s] = { c: 0, g: 0, a: 0 });
@@ -113,6 +125,17 @@ const num = v => (v === '' || v == null || isNaN(+v) ? 0 : +v);
   fs.writeFileSync(out,
     '// Automatisch gemaakt door tools/build-data.js. Niet met de hand aanpassen.\n' +
     'window.AVP_DATA = ' + JSON.stringify(data) + ';\n');
+
+  // Controle op foto's: verkeerde naam of te groot bestand
+  const names = new Set(data.players.map(p => p.name.toLowerCase()));
+  for (const [folder, list] of [['koppen', heads], ['fotos', photos]]) {
+    for (const img of list) {
+      if (!names.has(img.key)) console.log(`LET OP: assets/${folder}/${img.file} hoort bij geen enkele speler. Gebruik exact de naam uit de Excel.`);
+      if (img.kb > 600) console.log(`LET OP: assets/${folder}/${img.file} is ${img.kb} KB. Maak hem kleiner (max. 600 KB) zodat de site snel blijft.`);
+    }
+  }
+  const withHead = data.players.filter(p => p.face).map(p => p.name);
+  console.log(`Hoofden gevonden voor: ${withHead.join(', ') || 'niemand'}.`);
 
   const played = matches.length;
   console.log(`Klaar: ${data.players.length} spelers, ${played} matchen, seizoenen ${seasons.join(', ')}.`);
