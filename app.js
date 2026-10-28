@@ -520,7 +520,10 @@
   (function keepyUppy() {
     const court = $('#court');
     const reeksEl = $('#k-reeks'), recordEl = $('#k-record');
-    const players = D.players.filter(p => p.face);
+    // Elke keer vier willekeurige hoofden op het veld
+    const players = D.players.filter(p => p.face)
+      .map(p => [Math.random(), p]).sort((a, b) => a[0] - b[0]).map(x => x[1])
+      .slice(0, 4);
     if (!court || !players.length) return;
 
     const KEY = 'avp-hooghouden-record';
