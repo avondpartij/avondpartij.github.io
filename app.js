@@ -725,7 +725,6 @@
                   style="--x:${p.x}%;--y:${p.y}%" aria-label="${esc(label)}">
           <span class="slot__disc" aria-hidden="true">${pl ? face(pl, 'f') : '+'}</span>
           ${pl ? `<span class="slot__name" aria-hidden="true">${esc(pl.name)}</span>` : ''}
-          <span class="slot__pos" aria-hidden="true">${p.label}</span>
         </button>`;
       }).join('');
       justPlaced = null;

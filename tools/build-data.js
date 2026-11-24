@@ -115,10 +115,25 @@ const num = v => (v === '' || v == null || isNaN(+v) ? 0 : +v);
   // Wie stond er op het blad, per match ("seizoen-matchdag": [namen]).
   // Seizoen 1 komt uit seizoen1-selecties.json, de rest uit de rijen per match in Prestaties.
   const squads = {};
-  const s1file = path.join(__dirname, 'seizoen1-selecties.json');
-  if (fs.existsSync(s1file)) {
-    const s1 = JSON.parse(fs.readFileSync(s1file, 'utf8'));
-    for (const [md, names] of Object.entries(s1.matchen)) squads[`${s1.seizoen}-${md}`] = names;
+  const s1sel = require('./convert-s1');
+  if (await s1sel.refresh()) console.log('Overzicht seizoen 1 opnieuw ingelezen.');
+  if (fs.existsSync(s1sel.JSON_FILE)) {
+    const s1 = JSON.parse(fs.readFileSync(s1sel.JSON_FILE, 'utf8'));
+    const count = {};
+    for (const [md, names] of Object.entries(s1.matchen)) {
+      squads[`${s1.seizoen}-${md}`] = names;
+      for (const n of names) count[n] = (count[n] || 0) + 1;
+    }
+    // Controle: klopt het overzicht met de caps van seizoen 1 in de grote Excel?
+    const diffs = Object.values(players)
+      .map(pl => ({ name: pl.name, excel: pl.seasons[s1.seizoen] ? pl.seasons[s1.seizoen].c : 0, sel: count[pl.name] || 0 }))
+      .filter(d => d.excel !== d.sel);
+    if (diffs.length) {
+      console.log(`LET OP: het overzicht van seizoen ${s1.seizoen} klopt nog niet met de grote Excel:`);
+      for (const d of diffs) console.log(`  ${d.name}: ${d.sel} keer in het overzicht, ${d.excel} caps in de grote Excel`);
+    } else {
+      console.log(`Overzicht seizoen ${s1.seizoen} klopt met de grote Excel.`);
+    }
   }
   for (const p of perf) {
     if (p.md == null || p.c <= 0) continue;
