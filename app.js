@@ -685,14 +685,135 @@
     window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { measure(); draw(); wake(); }, 150); });
   })();
 
+  // ---------- Opstelling: kies je eigen vijf ----------
+  // Keeper met een ruit ervoor. Elke speler kan maar één keer opgesteld worden.
+  // Klaar? Dan zie je hoe vaak deze vijf samen op het blad stonden en hun all-time goals en assists.
+  (function lineup() {
+    const pitch = $('#pitch'), verdict = $('#verdict');
+    const picker = $('#kiezer'), list = $('#kiezer-lijst');
+    if (!pitch) return;
+
+    const POS = [
+      { id: 'v', label: 'Voor',   x: 50, y: 19 },
+      { id: 'l', label: 'Links',  x: 20, y: 42 },
+      { id: 'r', label: 'Rechts', x: 80, y: 42 },
+      { id: 'a', label: 'Achter', x: 50, y: 62 },
+      { id: 'k', label: 'Keeper', x: 50, y: 85 },
+    ];
+    const byName = new Map(D.players.map(p => [p.name, p]));
+    const squads = Object.values(D.squads || {});
+    const KEY = 'avp-opstelling';
+    let team = {};
+    try { team = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { team = {}; }
+    for (const k of Object.keys(team)) if (!byName.has(team[k]) || !POS.some(p => p.id === k)) delete team[k];
+    let editing = null, justPlaced = null;
+
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(team)); } catch (e) { /* geen opslag */ } };
+    const posOf = name => POS.find(p => team[p.id] === name);
+
+    function face(pl, cls) {
+      return pl.face
+        ? `<img class="${cls}" src="assets/${esc(pl.face)}" alt="" width="420" height="420" loading="lazy">`
+        : `<span class="${cls} ${cls}--mono mono" aria-hidden="true">${esc(initials(pl.name))}</span>`;
+    }
+
+    function drawPitch() {
+      pitch.innerHTML = POS.map(p => {
+        const pl = team[p.id] && byName.get(team[p.id]);
+        const label = pl ? `${p.label}: ${pl.name}. Wijzigen` : `${p.label}: kies een speler`;
+        return `<button type="button" class="slot${pl ? ' is-filled' : ''}${justPlaced === p.id ? ' is-new' : ''}" data-pos="${p.id}"
+                  style="--x:${p.x}%;--y:${p.y}%" aria-label="${esc(label)}">
+          <span class="slot__disc" aria-hidden="true">${pl ? face(pl, 'f') : '+'}</span>
+          ${pl ? `<span class="slot__name" aria-hidden="true">${esc(pl.name)}</span>` : ''}
+          <span class="slot__pos" aria-hidden="true">${p.label}</span>
+        </button>`;
+      }).join('');
+      justPlaced = null;
+      drawVerdict();
+    }
+
+    function drawVerdict() {
+      const names = POS.map(p => team[p.id]).filter(Boolean);
+      const free = 5 - names.length;
+      if (free > 0) {
+        verdict.innerHTML = `
+          <p class="verdict__h">${free === 5 ? 'Stel je ploeg op' : `Nog ${free} ${free === 1 ? 'positie' : 'posities'} vrij`}</p>
+          <div class="verdict__bar" aria-hidden="true">${POS.map((p, i) => `<i class="${i < names.length ? 'on' : ''}"></i>`).join('')}</div>`;
+        return;
+      }
+      const together = squads.filter(sq => names.every(n => sq.includes(n))).length;
+      const tot = names.reduce((t, n) => { const s = statsFor(byName.get(n), 'all'); t.g += s.g; t.a += s.a; return t; }, { g: 0, a: 0 });
+      verdict.innerHTML = `
+        <p class="verdict__h">Deze vijf samen</p>
+        <div class="verdict__nums">
+          <div class="hl"><span class="v">${together}</span><span class="k">${together === 1 ? 'match' : 'matchen'} samen op het blad</span></div>
+          <div><span class="v">${tot.g + tot.a}</span><span class="k">goals + assists samen</span></div>
+        </div>
+        <p class="verdict__split">${tot.g} goals en ${tot.a} assists, alle seizoenen samen.</p>
+        ${together === 0 ? '<p class="verdict__note">Deze vijf stonden nog nooit samen op het blad.</p>' : ''}`;
+    }
+
+    function openPicker(posId) {
+      editing = posId;
+      const pos = POS.find(p => p.id === posId);
+      $('#kiezer-titel').textContent = `Kies: ${pos.label.toLowerCase()}`;
+      const players = D.players.slice().sort((a, b) => a.name.localeCompare(b.name));
+      list.innerHTML = players.map(pl => {
+        const at = posOf(pl.name);
+        const here = at && at.id === posId;
+        const taken = at && !here;
+        return `<li><button type="button" data-pick="${esc(pl.name)}"${taken ? ' disabled' : ''}${here ? ' aria-current="true"' : ''}>
+          ${face(pl, 'thumb')}
+          <span>${esc(pl.name)}${taken ? `<span class="where">staat al ${esc(at.label.toLowerCase())}</span>` : ''}</span>
+        </button></li>`;
+      }).join('');
+      $('#kiezer-leeg').disabled = !team[posId];
+      picker.showModal();
+      const cur = list.querySelector('[aria-current="true"]') || list.querySelector('button:not([disabled])');
+      if (cur) cur.focus();
+    }
+
+    function closePicker() {
+      picker.close();
+      const back = pitch.querySelector(`[data-pos="${editing}"]`);
+      if (back) back.focus();
+    }
+
+    pitch.addEventListener('click', e => {
+      const b = e.target.closest('.slot');
+      if (b) openPicker(b.dataset.pos);
+    });
+    list.addEventListener('click', e => {
+      const b = e.target.closest('button[data-pick]');
+      if (!b || b.disabled) return;
+      team[editing] = b.dataset.pick;
+      justPlaced = editing;
+      save(); drawPitch(); closePicker();
+    });
+    $('#kiezer-leeg').addEventListener('click', () => { delete team[editing]; save(); drawPitch(); closePicker(); });
+    $('#kiezer-sluit').addEventListener('click', closePicker);
+    picker.addEventListener('click', e => { if (e.target === picker) closePicker(); });
+
+    $('#ploeg-leeg').addEventListener('click', () => { team = {}; save(); drawPitch(); });
+    $('#ploeg-random').addEventListener('click', () => {
+      const pool = D.players.filter(p => p.active).map(p => [Math.random(), p.name]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+      team = {};
+      POS.forEach((p, i) => { team[p.id] = pool[i]; });
+      save(); drawPitch();
+      pitch.querySelectorAll('.slot').forEach(s => s.classList.add('is-new'));
+    });
+
+    drawPitch();
+  })();
+
   // ---------- Zwevend hoofd ----------
-  // Om de 20 seconden zweeft een willekeurig hoofd over het scherm.
+  // Om de 10 seconden zweeft een willekeurig hoofd over het scherm.
   // Tik of hou het vast: je ziet een korte statistiek van die speler, daarna verdwijnt het.
   (function drifter() {
     const faces = D.players.filter(p => p.face);
     if (!faces.length || reduceMotion.matches) return;
 
-    const INTERVAL = 20000, FLIGHT = 10000, SHOW = 4200;
+    const INTERVAL = 10000, FLIGHT = 10000, SHOW = 4200;
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'drifter';
@@ -739,7 +860,7 @@
     }
 
     function launch() {
-      if (document.hidden || dlg.open) { schedule(5000); return; }
+      if (document.hidden || document.querySelector("dialog[open]")) { schedule(5000); return; }
       const choices = faces.filter(p => p.name !== lastName);
       pl = pick(choices.length ? choices : faces);
       lastName = pl.name;

@@ -96,6 +96,23 @@
       </div>
     </section>
 
+    <!-- Opstelling: kies je eigen vijf -->
+    <section class="lineup" id="opstelling" aria-labelledby="lineup-titel">
+      <div class="wrap">
+        <div class="lineup__head">
+          <h2 id="lineup-titel">Jouw vijf</h2>
+          <div class="lineup__actions">
+            <button type="button" class="btn" id="ploeg-random">Willekeurige ploeg</button>
+            <button type="button" class="btn" id="ploeg-leeg">Opnieuw</button>
+          </div>
+        </div>
+        <div class="lineup__grid">
+          <div class="pitch" id="pitch" role="group" aria-label="Opstelling: keeper en een ruit"></div>
+          <div class="verdict" id="verdict" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Club -->
     <section class="club" id="club" aria-labelledby="club-titel">
       <div class="wrap">
@@ -167,6 +184,18 @@
       <button type="button" class="btn" id="vorige">Vorige speler</button>
       <button type="button" class="btn btn--dark" id="sluit">Sluiten</button>
       <button type="button" class="btn" id="volgende">Volgende speler</button>
+    </div>
+  </dialog>
+
+  <!-- Keuzelijst voor een positie in de opstelling -->
+  <dialog class="picker" id="kiezer" aria-labelledby="kiezer-titel">
+    <div class="picker__box">
+      <h2 class="picker__title" id="kiezer-titel">Kies een speler</h2>
+      <ul class="picker__list" id="kiezer-lijst"></ul>
+      <div class="picker__foot">
+        <button type="button" class="btn" id="kiezer-leeg">Positie leegmaken</button>
+        <button type="button" class="btn btn--dark" id="kiezer-sluit">Annuleren</button>
+      </div>
     </div>
   </dialog>
 

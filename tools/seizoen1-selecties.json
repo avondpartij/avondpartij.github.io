@@ -1,0 +1,293 @@
+{
+ "seizoen": 1,
+ "matchen": {
+  "1": [
+   "Robbe VL",
+   "Keane VI",
+   "Milan V",
+   "Maarten V",
+   "Stephen B",
+   "Quinten H",
+   "Jasper VdP",
+   "Warre VR"
+  ],
+  "2": [
+   "Robbe VL",
+   "Keane VI",
+   "Rein VD",
+   "Robbe G",
+   "Ryan B",
+   "Jitse M",
+   "Jasper VdP",
+   "Warre VR"
+  ],
+  "3": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Jorne C",
+   "Rein VD",
+   "Maarten M",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "4": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Stephen B",
+   "Quinten H",
+   "Jasper VdP",
+   "Ryan B",
+   "Tom B"
+  ],
+  "5": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Milan V",
+   "Jorne C",
+   "Jasper VdP",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "6": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Rein VD",
+   "Maarten V",
+   "Maarten M",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "7": [
+   "Robbe VL",
+   "Jorne C",
+   "Robbe G",
+   "Rein VD",
+   "Casper S",
+   "Quinten H",
+   "Jasper VdP",
+   "Tom B"
+  ],
+  "8": [
+   "Robbe VL",
+   "Jorne C",
+   "Robbe G",
+   "Rein VD",
+   "Jitse M",
+   "Quinten H",
+   "Ryan B",
+   "Jasper VdP"
+  ],
+  "9": [
+   "Keane VI",
+   "Robbe G",
+   "Maarten V",
+   "Rein VD",
+   "Casper S",
+   "Jasper VdP",
+   "Ryan B",
+   "Tom B"
+  ],
+  "10": [
+   "Keane VI",
+   "Robbe G",
+   "Robbe VL",
+   "Jorne C",
+   "Rein VD",
+   "Maarten M",
+   "Stephen B",
+   "Ryan B",
+   "Tom B"
+  ],
+  "11": [
+   "Warre VR",
+   "Robbe G",
+   "Robbe VL",
+   "Quinten H",
+   "Rein VD",
+   "Maarten M",
+   "Stephen B",
+   "Ryan B"
+  ],
+  "12": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Maarten V",
+   "Rein VD",
+   "Casper S",
+   "Ryan B",
+   "Tom B"
+  ],
+  "13": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Jorne C",
+   "Rein VD",
+   "Jasper VdP",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "14": [
+   "Robbe VL",
+   "Stephen B",
+   "Jorne C",
+   "Rein VD",
+   "Casper S",
+   "Tom VD",
+   "Jasper VdP"
+  ],
+  "15": [
+   "Keane VI",
+   "Robbe G",
+   "Jorne C",
+   "Rein VD",
+   "Casper S",
+   "Ryan B",
+   "Tom B"
+  ],
+  "16": [
+   "Robbe VL",
+   "Keane VI",
+   "Robbe G",
+   "Jorne C",
+   "Rein VD",
+   "Jitse M",
+   "Ryan B",
+   "Maarten V"
+  ],
+  "17": [
+   "Robbe VL",
+   "Keane VI",
+   "Maarten V",
+   "Rein VD",
+   "Tom VD",
+   "Robbe G",
+   "Casper S",
+   "Warre VR"
+  ],
+  "18": [
+   "Keane VI",
+   "Jitse M",
+   "Jorne C",
+   "Rein VD",
+   "Quinten H",
+   "Jasper VdP",
+   "Ryan B",
+   "Robbe G"
+  ],
+  "19": [
+   "Robbe VL",
+   "Stephen B",
+   "Robbe G",
+   "Rein VD",
+   "Quinten H",
+   "Jasper VdP",
+   "Ryan B",
+   "Maarten V"
+  ],
+  "20": [
+   "Keane VI",
+   "Stephen B",
+   "Robbe G",
+   "Rein VD",
+   "Quinten H",
+   "Robbe VL",
+   "Ryan B",
+   "Maarten V"
+  ],
+  "21": [
+   "Robbe VL",
+   "Maarten V",
+   "Robbe G",
+   "Jorne C",
+   "Quinten H",
+   "Jasper VdP",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "22": [
+   "Robbe VL",
+   "Milan V",
+   "Keane VI",
+   "Elias VdB",
+   "Robbe G",
+   "Nico VdB",
+   "Jasper VdP",
+   "Ryan B",
+   "Warre VR"
+  ],
+  "23": [
+   "Robbe VL",
+   "Milan V",
+   "Keane VI",
+   "Elias VdB",
+   "Robbe G",
+   "Jasper VdP",
+   "Ryan B",
+   "Maarten V"
+  ],
+  "24": [
+   "Robbe VL",
+   "Milan V",
+   "Keane VI",
+   "Elias VdB",
+   "Robbe G",
+   "Jasper VdP",
+   "Ryan B",
+   "Rein VD"
+  ],
+  "25": [
+   "Robbe VL",
+   "Milan V",
+   "Keane VI",
+   "Elias VdB",
+   "Robbe G",
+   "Jasper VdP",
+   "Ryan B",
+   "Stephen B"
+  ],
+  "26": [
+   "Robbe VL",
+   "Milan V",
+   "Keane VI",
+   "Elias VdB",
+   "Robbe G",
+   "Jasper VdP",
+   "Ryan B",
+   "Warre VR"
+  ]
+ },
+ "uitslagen": {
+  "1": "W",
+  "2": "L",
+  "3": "L",
+  "4": "L",
+  "5": "L",
+  "6": "L",
+  "7": "W",
+  "8": "D",
+  "9": "L",
+  "10": "W",
+  "11": "L",
+  "12": "D",
+  "13": "W",
+  "14": "D",
+  "15": "W",
+  "16": "D",
+  "17": "L",
+  "18": "W",
+  "19": "L",
+  "20": "L",
+  "21": "L",
+  "22": "W",
+  "23": "L",
+  "24": "W",
+  "25": "W",
+  "26": "W"
+ }
+}

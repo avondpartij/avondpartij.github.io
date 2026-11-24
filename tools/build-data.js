@@ -112,11 +112,30 @@ const num = v => (v === '' || v == null || isNaN(+v) ? 0 : +v);
   const seasons = [...new Set(matches.map(m => m.s).concat(perf.map(p => p.s)))].sort((a, b) => a - b);
   const last = matches[matches.length - 1] || null;
 
+  // Wie stond er op het blad, per match ("seizoen-matchdag": [namen]).
+  // Seizoen 1 komt uit seizoen1-selecties.json, de rest uit de rijen per match in Prestaties.
+  const squads = {};
+  const s1file = path.join(__dirname, 'seizoen1-selecties.json');
+  if (fs.existsSync(s1file)) {
+    const s1 = JSON.parse(fs.readFileSync(s1file, 'utf8'));
+    for (const [md, names] of Object.entries(s1.matchen)) squads[`${s1.seizoen}-${md}`] = names;
+  }
+  for (const p of perf) {
+    if (p.md == null || p.c <= 0) continue;
+    const k = `${p.s}-${p.md}`;
+    (squads[k] || (squads[k] = [])).includes(p.name) || squads[k].push(p.name);
+  }
+  const known = new Set(Object.keys(players));
+  for (const [k, names] of Object.entries(squads)) {
+    for (const n of names) if (!known.has(n)) console.log(`LET OP: "${n}" in de selectie van ${k} is geen gekende speler.`);
+  }
+
   const data = {
     current: seasons[seasons.length - 1],
     seasons,
     lastMatch: last,
     matches,
+    squads,
     players: Object.values(players).sort((a, b) => a.name.localeCompare(b.name)),
   };
 
