@@ -393,13 +393,26 @@
     const gaPerMatch = s.c ? fmt1(s.ga / s.c) : '–';
     const hasDetail = games.length > 0;
 
+    // Over welke seizoenen gaan de matchdetails? Van seizoen 1 bestaan enkel totalen.
+    const scopeSeasons = cardSeason === 'all'
+      ? [...detailSeasons].sort((a, b) => a - b)
+      : (detailSeasons.has(+cardSeason) ? [+cardSeason] : []);
+    const scopeList = scopeSeasons.map(sz => 'S' + sz);
+    const scopeText = scopeList.length > 1 ? scopeList.slice(0, -1).join(', ') + ' en ' + scopeList[scopeList.length - 1] : (scopeList[0] || '');
+    const scope = scopeText ? ` <span class="scope">(${scopeText})</span>` : '';
+
     const recordHtml = hasDetail
       ? `${rec.W} gewonnen, ${rec.G} gelijk, ${rec.V} verloren`
-      : 'Geen matchdetails voor deze periode';
+      : `Speelde geen match in ${scopeText}`;
     const bestHtml = best && best.g + best.a > 0
       ? `${best.g} ${best.g === 1 ? 'goal' : 'goals'} en ${best.a} ${best.a === 1 ? 'assist' : 'assists'} tegen ${esc(best.m.tegen)} (${best.m.gv}–${best.m.gt}), seizoen ${best.s}`
-      : (hasDetail ? 'Nog geen goal of assist in één match' : 'Onbekend');
+      : (hasDetail ? 'Nog geen goal of assist in één match' : `Speelde geen match in ${scopeText}`);
     const form = games.slice(-6).map(g => resBadge(resultOf(g.m))).join('');
+    const matchFacts = scopeList.length
+      ? `<div class="wide"><dt>Uitslagen als hij meespeelde${scope}</dt><dd>${recordHtml}</dd></div>
+          <div class="wide"><dt>Beste match${scope}</dt><dd>${bestHtml}</dd></div>
+          ${form ? `<div class="wide"><dt>Laatste matchen${scope}</dt><dd><span class="form">${form}</span></dd></div>` : ''}`
+      : `<div class="wide nodata"><dt class="sr-only">Matchdetails</dt><dd>Geen gedetailleerde wedstrijdgegevens van seizoen ${esc(cardSeason)} beschikbaar.</dd></div>`;
 
     const seasonRows = D.seasons.map(sz => {
       const v = pl.seasons[sz];
@@ -422,9 +435,7 @@
         <dl class="pcard__facts">
           <div><dt>Goals per match</dt><dd>${perMatch}</dd></div>
           <div><dt>G+A per match</dt><dd>${gaPerMatch}</dd></div>
-          <div class="wide"><dt>Uitslagen als hij meespeelde</dt><dd>${recordHtml}</dd></div>
-          <div class="wide"><dt>Beste match</dt><dd>${bestHtml}</dd></div>
-          ${form ? `<div class="wide"><dt>Laatste matchen</dt><dd><span class="form">${form}</span></dd></div>` : ''}
+          ${matchFacts}
         </dl>
         <h3 class="pcard__h">Per seizoen</h3>
         <table class="mini">
@@ -520,10 +531,10 @@
   (function keepyUppy() {
     const court = $('#court');
     const reeksEl = $('#k-reeks'), recordEl = $('#k-record');
-    // Elke keer vier willekeurige hoofden op het veld
+    // Elke keer drie willekeurige hoofden op het veld
     const players = D.players.filter(p => p.face)
       .map(p => [Math.random(), p]).sort((a, b) => a[0] - b[0]).map(x => x[1])
-      .slice(0, 4);
+      .slice(0, 3);
     if (!court || !players.length) return;
 
     const KEY = 'avp-hooghouden-record';
@@ -672,6 +683,127 @@
 
     let rt = 0;
     window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { measure(); draw(); wake(); }, 150); });
+  })();
+
+  // ---------- Zwevend hoofd ----------
+  // Om de 20 seconden zweeft een willekeurig hoofd over het scherm.
+  // Tik of hou het vast: je ziet een korte statistiek van die speler, daarna verdwijnt het.
+  (function drifter() {
+    const faces = D.players.filter(p => p.face);
+    if (!faces.length || reduceMotion.matches) return;
+
+    const INTERVAL = 20000, FLIGHT = 10000, SHOW = 4200;
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'drifter';
+    el.hidden = true;
+    el.innerHTML = '<img alt="" width="420" height="420" draggable="false">';
+    const img = el.querySelector('img');
+    const tip = document.createElement('div');
+    tip.className = 'drifter__tip';
+    tip.setAttribute('role', 'status');
+    tip.hidden = true;
+    document.body.append(el, tip);
+
+    let timer = 0, raf = 0, pl = null, lastName = null, path = null, pos = { x: 0, y: 0, r: 0 };
+
+    function schedule(ms) { clearTimeout(timer); timer = setTimeout(launch, ms); }
+
+    function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+    function statFor(p) {
+      const t = statsFor(p, 'all');
+      const out = [];
+      if (t.g > 0) out.push(`${t.g} ${t.g === 1 ? 'goal' : 'goals'} in ${t.c} ${t.c === 1 ? 'match' : 'matchen'} voor Avondpartij`);
+      else out.push('Jaagt nog op zijn eerste goal voor Avondpartij');
+      if (t.a > 0) out.push(`${t.a} ${t.a === 1 ? 'assist' : 'assists'} aller tijden`);
+      out.push(`${t.c} caps voor Avondpartij`);
+      if (t.c >= 3 && t.g > 0) out.push(`${fmt1(t.g / t.c)} goals per match`);
+      for (const [k, label] of [['g', 'topschutters'], ['a', 'assistgevers'], ['c', 'meeste caps']]) {
+        const r = ranked('all', k).find(x => x.pl.name === p.name);
+        if (r && r.rank <= 5 && r.s[k] > 0) out.push(`Nummer ${r.rank} van de ${label} aller tijden`);
+      }
+      const seasons = Object.entries(p.seasons).filter(([, v]) => v.c > 0);
+      if (seasons.length > 1) {
+        const [sz, v] = seasons.sort((a, b) => b[1].g - a[1].g)[0];
+        if (v.g > 0) out.push(`Beste seizoen: seizoen ${sz} met ${v.g} goals`);
+      }
+      const games = p.games.map(g => ({ s: g[0], g: g[2], a: g[3], m: MATCHES.get(matchKey(g[0], g[1])) })).filter(g => g.m);
+      const best = games.sort((x, y) => (y.g + y.a) - (x.g + x.a))[0];
+      if (best && best.g + best.a >= 2) out.push(`Beste match: ${best.g} goals en ${best.a} assists tegen ${best.m.tegen} (S${best.s})`);
+      const wins = games.filter(g => resultOf(g.m) === 'W').length;
+      const ds = [...detailSeasons].sort((a, b) => a - b).map(s => 'S' + s);
+      const dsText = ds.length > 1 ? ds.slice(0, -1).join(', ') + ' en ' + ds[ds.length - 1] : ds[0];
+      if (wins > 0) out.push(`${wins} keer gewonnen met hem op het veld (${dsText})`);
+      return pick(out);
+    }
+
+    function launch() {
+      if (document.hidden || dlg.open) { schedule(5000); return; }
+      const choices = faces.filter(p => p.name !== lastName);
+      pl = pick(choices.length ? choices : faces);
+      lastName = pl.name;
+      img.src = 'assets/' + pl.face;
+      el.setAttribute('aria-label', `Vang het hoofd van ${pl.name}`);
+
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const size = vw < 640 ? 92 : 124;
+      el.style.setProperty('--s', size + 'px');
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      path = {
+        start: performance.now(), dir, size,
+        x0: dir > 0 ? -size : vw + size, x1: dir > 0 ? vw + size : -size,
+        y: vh * (0.2 + Math.random() * 0.5),
+        bob: 22 + Math.random() * 18, phase: Math.random() * 6,
+      };
+      el.classList.remove('is-caught', 'is-gone');
+      el.hidden = false;
+      raf = requestAnimationFrame(fly);
+    }
+
+    function fly(now) {
+      const t = (now - path.start) / FLIGHT;
+      if (t >= 1) { el.hidden = true; schedule(INTERVAL); return; }
+      pos.x = path.x0 + (path.x1 - path.x0) * t;
+      pos.y = path.y + Math.sin(t * Math.PI * 3 + path.phase) * path.bob;
+      pos.r = Math.sin(t * Math.PI * 4 + path.phase) * 12 + path.dir * 6;
+      el.style.transform = `translate(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px) rotate(${pos.r.toFixed(1)}deg)`;
+      raf = requestAnimationFrame(fly);
+    }
+
+    function catchIt() {
+      if (el.hidden || el.classList.contains('is-caught')) return;
+      cancelAnimationFrame(raf);
+      el.classList.add('is-caught');
+      tip.innerHTML = `<strong>${esc(pl.name)}</strong><span>${esc(statFor(pl))}</span>`;
+      tip.hidden = false;
+      // ballon boven het hoofd, of eronder als er bovenaan geen plaats is
+      const w = tip.offsetWidth, h = tip.offsetHeight, half = path.size / 2;
+      const left = Math.min(Math.max(pos.x - w / 2, 12), window.innerWidth - w - 12);
+      const above = pos.y - half - h - 10;
+      tip.style.left = left + 'px';
+      tip.style.top = (above > 12 ? above : pos.y + half + 10) + 'px';
+      clearTimeout(timer);
+      timer = setTimeout(release, SHOW);
+    }
+
+    function release() {
+      tip.hidden = true;
+      el.classList.add('is-gone');
+      setTimeout(() => { el.hidden = true; el.classList.remove('is-caught', 'is-gone'); }, 350);
+      schedule(INTERVAL);
+    }
+
+    el.addEventListener('pointerdown', e => { e.preventDefault(); catchIt(); });
+    el.addEventListener('click', e => { if (e.detail === 0) catchIt(); });
+    tip.addEventListener('click', () => { clearTimeout(timer); release(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && !el.hidden && !el.classList.contains('is-caught')) {
+        cancelAnimationFrame(raf); el.hidden = true; schedule(INTERVAL);
+      }
+    });
+
+    schedule(12000);
   })();
 
   render();

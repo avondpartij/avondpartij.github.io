@@ -498,6 +498,35 @@ h1, h2, h3 { font-family: var(--display); line-height: .95; margin: 0; letter-sp
 .pcard__facts dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.1; }
 .pcard__facts .wide { grid-column: 1 / -1; }
 .pcard__facts .wide dd { font-family: var(--body); font-weight: 600; font-size: 16px; line-height: 1.4; }
+.pcard__facts .scope { color: var(--bronze-text); font-weight: 600; }
+.pcard__facts .nodata { background: transparent; border: 2px dashed #CFC9D0; }
+.pcard__facts .nodata dd { color: var(--mute); }
+
+/* ============ Zwevend hoofd ============ */
+.drifter {
+  position: fixed; left: 0; top: 0; z-index: 60;
+  width: var(--s, 124px); height: var(--s, 124px);
+  margin: calc(var(--s, 124px) / -2) 0 0 calc(var(--s, 124px) / -2);
+  padding: 0; border: 0; background: none; cursor: pointer;
+  touch-action: none; will-change: transform; border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+.drifter img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 10px 12px rgba(31, 26, 32, .35)); transition: transform .3s var(--ease-spring); }
+.drifter:hover img { transform: scale(1.08); }
+.drifter.is-caught img { transform: scale(1.18); }
+.drifter.is-gone img { transform: scale(0); opacity: 0; transition: transform .3s ease-in, opacity .3s; }
+.drifter:focus-visible { outline: 3px solid var(--bronze); outline-offset: -8px; }
+.drifter__tip {
+  position: fixed; z-index: 61; max-width: min(300px, calc(100vw - 24px));
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--paper); color: var(--ink);
+  border: var(--b) solid var(--ink); border-radius: var(--r); box-shadow: 4px 4px 0 var(--gold);
+  padding: 10px 14px; font-size: 15px; line-height: 1.35; cursor: pointer;
+  animation: tipIn .3s var(--ease-spring);
+}
+.drifter__tip[hidden] { display: none; }
+.drifter__tip strong { font-family: var(--display); font-weight: 900; font-size: 22px; line-height: 1; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(8px) scale(.96); } }
 
 .pcard__h { font-size: 22px; font-weight: 800; margin: 20px 0 8px; }
 .mini { width: 100%; border-collapse: collapse; font-size: 16px; }
