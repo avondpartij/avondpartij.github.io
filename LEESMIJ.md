@@ -98,7 +98,7 @@ op een gsm. In Paint: *Formaat wijzigen* > *Pixels* > breedte 1400.
 
 De quiz maakt vragen uit de cijfers, de selecties en een paar weetjes die niet in de Excel staan:
 de oudste en jongste speler, familiebanden, en rugnummers met bijnamen.
-Die weetjes staan in **`dataweetjes.js`**. Open het bestand met Kladblok, pas de namen of nummers aan
+Die weetjes staan in **`data\weetjes.js`**. Open het bestand met Kladblok, pas de namen of nummers aan
 (gebruik exact de spelersnaam uit de Excel) en dubbelklik daarna op `update-stats.bat` en typ `j`.
 
 Draagt iemand anders een nummer? Zet de speler die het nummer meestal draagt vooraan in de lijst `spelers`.
