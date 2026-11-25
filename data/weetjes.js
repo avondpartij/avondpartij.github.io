@@ -6,9 +6,15 @@ window.AVP_WEETJES = {
   jongste: 'Victor G',
 
   // Familie
-  broers: [['Victor G', 'Robbe G']],
-  familienaam: { 'Victor G': 'Guldemont', 'Robbe G': 'Guldemont' },
+  broers: [['Victor G', 'Robbe G'], ['Rein VD', 'Tim VD']],
+  familienaam: {
+    'Victor G': 'Guldemont', 'Robbe G': 'Guldemont',
+    'Rein VD': 'Van Droogenbroeck', 'Tim VD': 'Van Droogenbroeck',
+  },
   vaderZoon: [{ vader: 'Nico VdB', zoon: 'Elias VdB' }],
+
+  // Opstelling: vrij tekstveld (mag leeg blijven)
+  eersteAvond: '',
 
   // Rugnummers en bijnamen. "spelers": wie dit nummer draagt (de eerste draagt het meestal).
   rugnummers: [
@@ -21,7 +27,7 @@ window.AVP_WEETJES = {
     { nummer: 11, bijnaam: 'Missing Link', spelers: ['Jorne C', 'Maarten V'] },
     { nummer: 14, bijnaam: 'Kemavast',     spelers: ['Rein VD'] },
     { nummer: 23, bijnaam: 'Lange Jos',    spelers: ['Maarten M'] },
-    { nummer: 44, bijnaam: 'Nithwing',     spelers: ['Quinten H', 'Casper S'] },
+    { nummer: 44, bijnaam: 'Nithwing',     spelers: ['Quinten H', 'Casper S','Tom VD'] },
     { nummer: 67, bijnaam: 'Papa Sandal',  spelers: ['Jasper VdP'] },
     { nummer: 95, bijnaam: 'Brutus',       spelers: ['Ryan B'] },
   ],

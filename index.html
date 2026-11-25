@@ -107,8 +107,15 @@
           </div>
         </div>
         <div class="lineup__grid">
-          <div class="pitch" id="pitch" role="group" aria-label="Opstelling: keeper en een ruit"></div>
+          <div class="field">
+            <div class="field__top">
+              <div class="pitch" id="pitch" role="group" aria-label="Opstelling: keeper en een ruit"></div>
+              <div class="field__dark" id="veld-donker" aria-hidden="true"></div>
+            </div>
+            <div class="bench" id="bank" role="group" aria-label="Wisselbank" hidden></div>
+          </div>
           <div class="verdict" id="verdict" aria-live="polite"></div>
+          <p class="sr-only" id="opstelling-meld" aria-live="polite"></p>
         </div>
       </div>
     </section>
@@ -199,6 +206,9 @@
       <button type="button" class="btn" id="volgende">Volgende speler</button>
     </div>
   </dialog>
+
+  <!-- Extra weergave opstelling -->
+  <dialog class="lookback" id="terugblik" aria-labelledby="tb-titel"></dialog>
 
   <!-- Keuzelijst voor een positie in de opstelling -->
   <dialog class="picker" id="kiezer" aria-labelledby="kiezer-titel">

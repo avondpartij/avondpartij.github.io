@@ -708,8 +708,26 @@
     for (const k of Object.keys(team)) if (!byName.has(team[k]) || !POS.some(p => p.id === k)) delete team[k];
     let editing = null, justPlaced = null;
 
+    // Extra weergave opstelling: drie extra plaatsen onder het veld bij een vaste referentie-opstelling
+    const BANK = [1, 2, 3].map(i => ({ id: 'w' + i, label: 'Wissel', where: 'op de bank' }));
+    const REF = { key: '1-1', k: 'Warre VR' };
+    const refSquad = ((D.squads || {})[REF.key] || []).filter(n => byName.has(n));
+    const KEY_B = 'avp-opstelling-b';
+    let bank = {};
+    try { bank = JSON.parse(localStorage.getItem(KEY_B)) || {}; } catch (e) { bank = {}; }
+    for (const k of Object.keys(bank)) if (!byName.has(bank[k]) || !BANK.some(p => p.id === k)) delete bank[k];
+    let bankOn = false;
+    const isBank = id => BANK.some(p => p.id === id);
+    const get = id => (isBank(id) ? bank[id] : team[id]);
+    const slots = () => (bankOn ? [...POS, ...BANK] : POS);
+    const saveB = () => { try { localStorage.setItem(KEY_B, JSON.stringify(bank)); } catch (e) { /* geen opslag */ } };
+
     const save = () => { try { localStorage.setItem(KEY, JSON.stringify(team)); } catch (e) { /* geen opslag */ } };
-    const posOf = name => POS.find(p => team[p.id] === name);
+    let bestFive = null;
+    const bestFiveGA = () => bestFive ?? (bestFive = D.players
+      .map(p => { const s = statsFor(p, 'all'); return s.g + s.a; })
+      .sort((a, b) => b - a).slice(0, 5).reduce((t, v) => t + v, 0));
+    const posOf = name => slots().find(p => get(p.id) === name);
 
     function face(pl, cls) {
       return pl.face
@@ -744,7 +762,7 @@
       const ga = tot.g + tot.a;
       const GROUP = { 2: ['Dit duo', 'Dit duo'], 3: ['Dit trio', 'Dit trio'], 4: ['Deze vier', 'Deze vier'], 5: ['Deze vijf', 'Deze vijf'] };
 
-      // Eretitels, enkel voor een duo of trio
+      // Eretitels voor een duo, trio of de beste vijf
       let title = null;
       if (names.length === 2) {
         if (together >= 20) title = { text: 'Magisch Duo', kind: 'opal' };
@@ -753,6 +771,9 @@
         if (ga > 175) title = { text: 'De Drie Wijzen', kind: 'opal' };
         else if (ga > 125) title = { text: 'Triple Threat', kind: 'opal' };
         else if (ga > 75) title = { text: 'Gouden Trio', kind: 'gold' };
+      } else if (names.length === 5 && ga === bestFiveGA()) {
+        // Dreamteam: de hoogst mogelijke G+A van vijf spelers (de vijf beste van aller tijden samen)
+        title = { text: 'Dreamteam', kind: 'diamond' };
       }
 
       verdict.innerHTML = `
@@ -768,7 +789,8 @@
 
     function openPicker(posId) {
       editing = posId;
-      const pos = POS.find(p => p.id === posId);
+      const pos = slots().find(p => p.id === posId);
+      if (!pos) return;
       $('#kiezer-titel').textContent = `Kies: ${pos.label.toLowerCase()}`;
       const players = D.players.slice().sort((a, b) => a.name.localeCompare(b.name));
       list.innerHTML = players.map(pl => {
@@ -777,10 +799,10 @@
         const taken = at && !here;
         return `<li><button type="button" data-pick="${esc(pl.name)}"${taken ? ' disabled' : ''}${here ? ' aria-current="true"' : ''}>
           ${face(pl, 'thumb')}
-          <span>${esc(pl.name)}${taken ? `<span class="where">staat al ${esc(at.label.toLowerCase())}</span>` : ''}</span>
+          <span>${esc(pl.name)}${taken ? `<span class="where">staat al ${esc(at.where || at.label.toLowerCase())}</span>` : ''}</span>
         </button></li>`;
       }).join('');
-      $('#kiezer-leeg').disabled = !team[posId];
+      $('#kiezer-leeg').disabled = !get(posId);
       picker.showModal();
       const cur = list.querySelector('[aria-current="true"]') || list.querySelector('button:not([disabled])');
       if (cur) cur.focus();
@@ -788,8 +810,16 @@
 
     function closePicker() {
       picker.close();
-      const back = pitch.querySelector(`[data-pos="${editing}"]`);
+      const back = $('#opstelling').querySelector(`[data-pos="${editing}"]`);
       if (back) back.focus();
+    }
+
+    // Na elke wijziging: tekenen, extra plaatsen bijwerken en kijken of alles klopt
+    function changed(animate) {
+      save(); saveB();
+      drawPitch();
+      syncBank(animate);
+      checkDone();
     }
 
     pitch.addEventListener('click', e => {
@@ -799,24 +829,154 @@
     list.addEventListener('click', e => {
       const b = e.target.closest('button[data-pick]');
       if (!b || b.disabled) return;
-      team[editing] = b.dataset.pick;
-      justPlaced = editing;
-      save(); drawPitch(); closePicker();
+      if (isBank(editing)) bank[editing] = b.dataset.pick;
+      else { team[editing] = b.dataset.pick; justPlaced = editing; }
+      closePicker();
+      changed(true);
     });
-    $('#kiezer-leeg').addEventListener('click', () => { delete team[editing]; save(); drawPitch(); closePicker(); });
+    $('#kiezer-leeg').addEventListener('click', () => {
+      if (isBank(editing)) delete bank[editing]; else delete team[editing];
+      closePicker();
+      changed(true);
+    });
     $('#kiezer-sluit').addEventListener('click', closePicker);
     picker.addEventListener('click', e => { if (e.target === picker) closePicker(); });
 
-    $('#ploeg-leeg').addEventListener('click', () => { team = {}; save(); drawPitch(); });
+    $('#ploeg-leeg').addEventListener('click', () => { team = {}; bank = {}; changed(false); });
     $('#ploeg-random').addEventListener('click', () => {
       const pool = D.players.filter(p => p.active).map(p => [Math.random(), p.name]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
       team = {};
+      bank = {};
       POS.forEach((p, i) => { team[p.id] = pool[i]; });
-      save(); drawPitch();
+      changed(true);
       pitch.querySelectorAll('.slot').forEach(s => s.classList.add('is-new'));
     });
 
+    // ---- extra weergave opstelling ----
+    const bankEl = $('#bank'), darkEl = $('#veld-donker'), sayEl = $('#opstelling-meld');
+
+    function refOk() {
+      if (!refSquad.length || team.k !== REF.k) return false;
+      const field = ['v', 'l', 'r', 'a'].map(id => team[id]);
+      return field.every(n => n && n !== REF.k && refSquad.includes(n)) && new Set(field).size === 4;
+    }
+
+    function drawBank() {
+      bankEl.innerHTML = BANK.map(p => {
+        const pl = bank[p.id] && byName.get(bank[p.id]);
+        const label = pl ? `${p.label}: ${pl.name}. Wijzigen` : `${p.label}: kies een speler`;
+        return `<button type="button" class="seat${pl ? ' is-filled' : ''}" data-pos="${p.id}" aria-label="${esc(label)}">
+          <span class="slot__disc" aria-hidden="true">${pl ? face(pl, 'f') : '+'}</span>
+          ${pl ? `<span class="slot__name" aria-hidden="true">${esc(pl.name)}</span>` : ''}
+        </button>`;
+      }).join('');
+    }
+
+    function syncBank(animate) {
+      const ok = refOk();
+      if (!ok) {
+        if (bankOn || Object.keys(bank).length) { bank = {}; saveB(); }
+        if (bankOn) { bankOn = false; bankEl.hidden = true; bankEl.classList.remove('is-in'); bankEl.innerHTML = ''; }
+        return;
+      }
+      drawBank();
+      if (bankOn) return;
+      bankOn = true;
+      if (!animate) { bankEl.hidden = false; bankEl.classList.add('is-in'); return; }
+      // het licht gaat even uit op het veld, daarna schuift de bank in beeld
+      darkEl.classList.remove('is-on'); void darkEl.offsetWidth; darkEl.classList.add('is-on');
+      setTimeout(() => {
+        bankEl.hidden = false;
+        void bankEl.offsetWidth;
+        bankEl.classList.add('is-in');
+        sayEl.textContent = 'Er zijn drie wisselplaatsen verschenen onder het veld.';
+        const first = bankEl.querySelector('.seat');
+        if (first && !picker.open) first.focus();
+      }, 1100);
+    }
+
+    bankEl.addEventListener('click', e => {
+      const b = e.target.closest('.seat');
+      if (b) openPicker(b.dataset.pos);
+    });
+
+    const isDone = () => {
+      if (!bankOn) return false;
+      const field = ['v', 'l', 'r', 'a'].map(id => team[id]);
+      const want = refSquad.filter(n => n !== REF.k && !field.includes(n));
+      const got = BANK.map(p => bank[p.id]).filter(Boolean);
+      return got.length === 3 && want.length === 3 && want.every(n => got.includes(n));
+    };
+    let wasDone = false;
+    function checkDone() {
+      const done = isDone();
+      if (done && !wasDone) showLookback();
+      wasDone = done;
+    }
+
+    // Eindweergave: alle teksten hier samen
+    const TEKST = {
+      titel: 'De avond van de eerste partij...',
+      thuis: 'Avondpartij',
+      uit: 'Beneboys',
+      score: '5 – 1',
+      regel: 'Seizoen 1 · Speeldag 1 · 16 september 2024, 22:00',
+      proficiat: 'Proficiat, je hebt de allereerste Avondpartij gevonden.',
+      beloning: 'De eerste die de code FAN_SINCE_DAY1 stuurt naar @avondpartij op Instagram, krijgt na de komende 5 wedstrijden een drankje van de club.',
+      alVergeven: 'De beloning ging al naar {naam}, maar de eer is ook voor jou.',
+      terug: 'Terug naar 2026',
+      melding: 'De avond van de eerste partij. Avondpartij 5 – 1 Beneboys.',
+    };
+    const look = $('#terugblik');
+
+    function showLookback() {
+      const naam = String((window.AVP_WEETJES || {}).eersteAvond || '').trim();
+      const order = [REF.k, ...refSquad.filter(n => n !== REF.k)];
+      look.innerHTML = `
+        <div class="lookback__box">
+          <p class="honor honor--past lookback__title" id="tb-titel" tabindex="-1"><span>${esc(TEKST.titel)}</span></p>
+          <div class="retro" role="img" aria-label="${esc(`${TEKST.thuis} ${TEKST.score} ${TEKST.uit}. ${TEKST.regel}`)}">
+            <div class="retro__row" aria-hidden="true">
+              <span class="retro__team">${esc(TEKST.thuis)}</span>
+              <span class="retro__score">${esc(TEKST.score)}</span>
+              <span class="retro__team">${esc(TEKST.uit)}</span>
+            </div>
+            <div class="retro__line" aria-hidden="true">${esc(TEKST.regel)}</div>
+          </div>
+          <div class="rolls"><ol class="rolls__list" id="tb-rol">${order.map(n => {
+            const pl = byName.get(n);
+            return pl ? `<li>${face(pl, 'rolls__face')}<span>${esc(n)}</span></li>` : '';
+          }).join('')}</ol></div>
+          <div class="lookback__end" id="tb-einde">
+            <p class="lookback__big">${esc(TEKST.proficiat)}</p>
+            <p>${naam ? esc(TEKST.alVergeven.replace('{naam}', naam)) : esc(TEKST.beloning)}</p>
+          </div>
+          <button type="button" class="btn btn--dark lookback__btn" id="tb-terug">${esc(TEKST.terug)}</button>
+        </div>`;
+      document.documentElement.classList.add('is-terug');
+      look.showModal();
+      sayEl.textContent = TEKST.melding;
+      $('#tb-titel').focus();
+      const end = $('#tb-einde'), roll = $('#tb-rol');
+      const finish = () => {
+        if (!reduceMotion.matches) roll.parentElement.classList.add('is-done');
+        end.classList.add('is-in');
+        sayEl.textContent = end.textContent.replace(/\s+/g, ' ').trim();
+      };
+      if (reduceMotion.matches) { finish(); return; }
+      roll.classList.add('is-rolling');
+      roll.addEventListener('animationend', finish, { once: true });
+    }
+    look.addEventListener('click', e => { if (e.target.closest('#tb-terug')) look.close(); });
+    look.addEventListener('close', () => {
+      document.documentElement.classList.remove('is-terug');
+      const back = bankEl.querySelector('.seat:last-child');
+      if (back) back.focus();
+    });
+
     drawPitch();
+    syncBank(false);
+    wasDone = isDone();
   })();
 
   // ---------- Quiz ----------
@@ -869,15 +1029,17 @@
           pool.filter(n => n !== x && tog(n, x) >= 3),
           `${right} en ${x} speelden nog nooit samen in dezelfde match.`);
       },
-      // De gebroeders Guldemont
+      // Gebroeders (willekeurige familie uit weetjes.js)
       () => {
-        const [a, b] = (W.broers || [])[0] || [];
+        const [a, b] = rnd(W.broers || [[]]) || [];
         if (!a) return null;
         const fam = (W.familienaam || {})[a];
-        const right = rnd(pool.filter(n => n !== a && n !== b && tog(n, a) === 0 && tog(n, b) === 0));
-        return make(`Ik speelde nog nooit samen met ${fam ? 'de gebroeders ' + fam : a + ' of ' + b}.`, right,
-          pool.filter(n => n !== a && n !== b && tog(n, a) >= 2 && tog(n, b) >= 2),
-          `${right} stond nooit samen op het blad met ${a} of ${b}.`);
+        // matchen waarin beide broers op het blad stonden
+        const both = n => squads.filter(s => s.includes(n) && s.includes(a) && s.includes(b)).length;
+        const right = rnd(pool.filter(n => n !== a && n !== b && both(n) === 0));
+        return make(`Ik speelde nog nooit samen met ${fam ? 'de gebroeders ' + fam : a + ' en ' + b} in dezelfde match.`, right,
+          pool.filter(n => n !== a && n !== b && both(n) >= 2),
+          `${right} stond nooit samen met ${a} én ${b} op het blad.`);
       },
       // Maar één keer samen
       () => {
