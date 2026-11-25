@@ -172,6 +172,19 @@
     <p id="bijgewerkt"></p>
   </footer>
 
+  <!-- Quiz: wordt opgebouwd terwijl je naar beneden scrolt, en weer afgebroken als je naar boven scrolt -->
+  <section class="quiz" id="quiz" aria-labelledby="quiz-titel">
+    <div class="quiz__stage" id="quiz-stage">
+      <div class="quiz__night" aria-hidden="true"></div>
+      <div class="quiz__inner">
+        <h2 class="quiz__title" id="quiz-titel" aria-label="Quiz"><span>Q</span><span>u</span><span>i</span><span>z</span></h2>
+        <p class="quiz__q" id="quiz-vraag"></p>
+        <ol class="quiz__opts" id="quiz-opties" aria-label="Kies het juiste antwoord"></ol>
+        <div class="quiz__result" id="quiz-uitkomst" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- Spelerskaart -->
   <dialog class="sheet" id="kaart" aria-labelledby="kaart-naam">
     <div class="flip" id="flip">
@@ -202,6 +215,7 @@
   <noscript><p class="noscript">Zet JavaScript aan om de cijfers te zien.</p></noscript>
 
   <script src="data/stats.js"></script>
+  <script src="data/weetjes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

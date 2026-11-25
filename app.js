@@ -733,23 +733,37 @@
 
     function drawVerdict() {
       const names = POS.map(p => team[p.id]).filter(Boolean);
-      const free = 5 - names.length;
-      if (free > 0) {
+      if (names.length < 2) {
         verdict.innerHTML = `
-          <p class="verdict__h">${free === 5 ? 'Stel je ploeg op' : `Nog ${free} ${free === 1 ? 'positie' : 'posities'} vrij`}</p>
+          <p class="verdict__h">${names.length === 0 ? 'Stel je ploeg op' : 'Kies nog een speler'}</p>
           <div class="verdict__bar" aria-hidden="true">${POS.map((p, i) => `<i class="${i < names.length ? 'on' : ''}"></i>`).join('')}</div>`;
         return;
       }
       const together = squads.filter(sq => names.every(n => sq.includes(n))).length;
       const tot = names.reduce((t, n) => { const s = statsFor(byName.get(n), 'all'); t.g += s.g; t.a += s.a; return t; }, { g: 0, a: 0 });
+      const ga = tot.g + tot.a;
+      const GROUP = { 2: ['Dit duo', 'Dit duo'], 3: ['Dit trio', 'Dit trio'], 4: ['Deze vier', 'Deze vier'], 5: ['Deze vijf', 'Deze vijf'] };
+
+      // Eretitels, enkel voor een duo of trio
+      let title = null;
+      if (names.length === 2) {
+        if (together >= 20) title = { text: 'Magisch Duo', kind: 'opal' };
+        else if (together >= 15) title = { text: 'Gouden Duo', kind: 'gold' };
+      } else if (names.length === 3) {
+        if (ga > 175) title = { text: 'De Drie Wijzen', kind: 'opal' };
+        else if (ga > 125) title = { text: 'Triple Threat', kind: 'opal' };
+        else if (ga > 75) title = { text: 'Gouden Trio', kind: 'gold' };
+      }
+
       verdict.innerHTML = `
-        <p class="verdict__h">Deze vijf samen</p>
+        <p class="verdict__h">${GROUP[names.length][0]} samen</p>
+        ${title ? `<p class="honor honor--${title.kind}"><span>${title.text}</span></p>` : ''}
         <div class="verdict__nums">
           <div class="hl"><span class="v">${together}</span><span class="k">${together === 1 ? 'match' : 'matchen'} samen op het blad</span></div>
-          <div><span class="v">${tot.g + tot.a}</span><span class="k">goals + assists samen</span></div>
+          <div><span class="v">${ga}</span><span class="k">goals + assists samen</span></div>
         </div>
         <p class="verdict__split">${tot.g} goals en ${tot.a} assists, alle seizoenen samen.</p>
-        ${together === 0 ? '<p class="verdict__note">Deze vijf stonden nog nooit samen op het blad.</p>' : ''}`;
+        ${together === 0 ? `<p class="verdict__note">${GROUP[names.length][1]} stond${names.length > 2 ? 'en' : ''} nog nooit samen op het blad.</p>` : ''}`;
     }
 
     function openPicker(posId) {
@@ -803,6 +817,259 @@
     });
 
     drawPitch();
+  })();
+
+  // ---------- Quiz ----------
+  // Wordt opgebouwd terwijl je naar beneden scrolt en weer afgebroken als je naar boven scrolt.
+  // Elke keer dat je opnieuw helemaal naar beneden komt, staat er een nieuwe willekeurige vraag.
+  (function quiz() {
+    const section = $('#quiz'), stage = $('#quiz-stage');
+    const qEl = $('#quiz-vraag'), optsEl = $('#quiz-opties'), resEl = $('#quiz-uitkomst');
+    if (!section) return;
+    const W = window.AVP_WEETJES || {};
+
+    // --- gegevens ---
+    const byName = new Map(D.players.map(p => [p.name, p]));
+    const squads = Object.values(D.squads || {});
+    const total = n => statsFor(byName.get(n), 'all');
+    const pool = D.players.filter(p => statsFor(p, 'all').c >= 3).map(p => p.name);
+    const inPool = n => pool.includes(n);
+    const togCache = new Map();
+    const tog = (a, b) => {
+      const k = a < b ? a + '|' + b : b + '|' + a;
+      if (!togCache.has(k)) togCache.set(k, squads.filter(s => s.includes(a) && s.includes(b)).length);
+      return togCache.get(k);
+    };
+    const seasonStat = (n, s, k) => { const v = byName.get(n).seasons[s]; return v ? (k === 'ga' ? v.g + v.a : v[k]) : 0; };
+    const playedIn = s => pool.filter(n => seasonStat(n, s, 'c') > 0);
+
+    const rnd = a => a[Math.floor(Math.random() * a.length)];
+    const shuffle = a => a.map(x => [Math.random(), x]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+    const goals = n => `${n} ${n === 1 ? 'goal' : 'goals'}`;
+    const matchen = n => `${n} ${n === 1 ? 'match' : 'matchen'}`;
+
+    // Maakt een vraag met 1 juist en 2 foute antwoorden (of null als dat niet lukt)
+    function make(q, right, wrongs, explain) {
+      const w = shuffle([...new Set(wrongs)].filter(n => n !== right)).slice(0, 2);
+      if (!right || w.length < 2) return null;
+      return { q, right, options: shuffle([right, ...w]), explain };
+    }
+    // Unieke hoogste waarde in een lijst, anders null
+    function uniqueTop(names, f) {
+      const s = names.map(n => [n, f(n)]).sort((a, b) => b[1] - a[1]);
+      return s.length > 1 && s[0][1] > s[1][1] && s[0][1] > 0 ? s : null;
+    }
+
+    const GEN = [
+      // Nooit samen gespeeld met X
+      () => {
+        const x = rnd(pool);
+        const right = rnd(pool.filter(n => n !== x && tog(n, x) === 0));
+        return make(`Ik stond nog nooit samen met ${x} op het blad.`, right,
+          pool.filter(n => n !== x && tog(n, x) >= 3),
+          `${right} en ${x} speelden nog nooit samen in dezelfde match.`);
+      },
+      // De gebroeders Guldemont
+      () => {
+        const [a, b] = (W.broers || [])[0] || [];
+        if (!a) return null;
+        const fam = (W.familienaam || {})[a];
+        const right = rnd(pool.filter(n => n !== a && n !== b && tog(n, a) === 0 && tog(n, b) === 0));
+        return make(`Ik speelde nog nooit samen met ${fam ? 'de gebroeders ' + fam : a + ' of ' + b}.`, right,
+          pool.filter(n => n !== a && n !== b && tog(n, a) >= 2 && tog(n, b) >= 2),
+          `${right} stond nooit samen op het blad met ${a} of ${b}.`);
+      },
+      // Maar één keer samen
+      () => {
+        const x = rnd(pool);
+        const right = rnd(pool.filter(n => n !== x && tog(n, x) === 1));
+        return make(`Samen met ${x} vorm ik een duo dat maar één keer samen op het blad stond.`, right,
+          pool.filter(n => n !== x && tog(n, x) >= 4),
+          `${right} en ${x} speelden precies één match samen.`);
+      },
+      // Vaakst samen met X
+      () => {
+        const x = rnd(pool);
+        const top = uniqueTop(pool.filter(n => n !== x), n => tog(n, x));
+        if (!top) return null;
+        return make(`Met niemand stond ${x} vaker samen op het blad dan met mij.`, top[0][0],
+          top.slice(1).filter(t => t[1] < top[0][1]).map(t => t[0]).slice(0, 8),
+          `${top[0][0]} en ${x} stonden al ${matchen(top[0][1])} samen op het blad.`);
+      },
+      // Evenveel goals als X in een seizoen
+      () => {
+        const s = rnd(D.seasons);
+        const x = rnd(playedIn(s).filter(n => seasonStat(n, s, 'g') > 0));
+        if (!x) return null;
+        const g = seasonStat(x, s, 'g');
+        const right = rnd(playedIn(s).filter(n => n !== x && seasonStat(n, s, 'g') === g));
+        return make(`In seizoen ${s} scoorde ik evenveel doelpunten als ${x}.`, right,
+          playedIn(s).filter(n => n !== x && Math.abs(seasonStat(n, s, 'g') - g) >= 2),
+          `${right} en ${x} scoorden allebei ${goals(g)} in seizoen ${s}.`);
+      },
+      // Topschutter / assistkoning / meeste caps (per seizoen of aller tijden)
+      () => {
+        const k = rnd(['g', 'a', 'c']);
+        const s = rnd([...D.seasons, 'all']);
+        const names = s === 'all' ? pool : playedIn(s);
+        const val = n => (s === 'all' ? total(n)[k] : seasonStat(n, s, k));
+        const top = uniqueTop(names, val);
+        if (!top) return null;
+        const when = s === 'all' ? 'aller tijden' : `in seizoen ${s}`;
+        const q = s === 'all'
+          ? { g: 'Ik ben de topschutter aller tijden.', a: 'Niemand gaf ooit meer assists dan ik.', c: 'Ik speelde de meeste matchen aller tijden.' }[k]
+          : { g: `Ik was topschutter van seizoen ${s}.`, a: `Niemand gaf meer assists in seizoen ${s} dan ik.`, c: `Ik speelde de meeste matchen in seizoen ${s}.` }[k];
+        const word = { g: 'goals', a: 'assists', c: 'caps' }[k];
+        return make(q, top[0][0], top.slice(1, 7).map(t => t[0]),
+          `${top[0][0]}: ${top[0][1]} ${word} ${when}. Nummer twee had er ${top[1][1]}.`);
+      },
+      // Precies zoveel goals en assists in een seizoen
+      () => {
+        const s = rnd(D.seasons);
+        const names = playedIn(s);
+        const x = rnd(names.filter(n => seasonStat(n, s, 'ga') >= 3));
+        if (!x) return null;
+        const g = seasonStat(x, s, 'g'), a = seasonStat(x, s, 'a');
+        if (names.some(n => n !== x && seasonStat(n, s, 'g') === g && seasonStat(n, s, 'a') === a)) return null;
+        return make(`In seizoen ${s} kwam ik aan ${goals(g)} en ${a} ${a === 1 ? 'assist' : 'assists'}.`, x,
+          names.filter(n => n !== x),
+          `${x} had in seizoen ${s} ${goals(g)} en ${a} ${a === 1 ? 'assist' : 'assists'}.`);
+      },
+      // Veel goals in één match
+      () => {
+        const rows = D.players.flatMap(p => p.games.filter(g => g[2] >= 3).map(g => ({ n: p.name, s: g[0], md: g[1], g: g[2] })));
+        const r = rnd(rows);
+        if (!r || !inPool(r.n)) return null;
+        const m = MATCHES.get(matchKey(r.s, r.md));
+        if (!m) return null;
+        const others = D.players.filter(p => p.name !== r.n && p.games.some(g => g[0] === r.s && g[1] === r.md && g[2] === r.g));
+        if (others.length) return null;
+        return make(`Ik scoorde ${r.g} keer in één match tegen ${m.tegen} (seizoen ${r.s}).`, r.n,
+          pool.filter(n => n !== r.n),
+          `${r.n} maakte ${goals(r.g)} in de ${m.gv}–${m.gt} tegen ${m.tegen}.`);
+      },
+      // Wie van deze drie: meeste caps / goals / assists / goals per match
+      () => {
+        const k = rnd(['c', 'g', 'a', 'r']);
+        const val = n => { const t = total(n); return k === 'r' ? (t.c >= 8 ? t.g / t.c : -1) : t[k]; };
+        const three = shuffle(pool.filter(n => val(n) >= 0)).slice(0, 3);
+        const top = uniqueTop(three, val);
+        if (!top || top[0][1] === top[1][1]) return null;
+        const q = { c: 'Van deze drie speelde ik de meeste matchen.', g: 'Van deze drie scoorde ik het vaakst.', a: 'Van deze drie gaf ik de meeste assists.', r: 'Van deze drie scoor ik gemiddeld het meest per match.' }[k];
+        const fmt = n => (k === 'r' ? fmt1(val(n)) + ' goals per match' : val(n) + ' ' + { c: 'caps', g: 'goals', a: 'assists' }[k]);
+        return { q, right: top[0][0], options: three, explain: three.map(n => `${n}: ${fmt(n)}`).join(', ') + ' (aller tijden).' };
+      },
+      // Oudste / jongste
+      () => {
+        const old = rnd([true, false]);
+        const right = old ? W.oudste : W.jongste;
+        if (!right) return null;
+        return make(old ? 'Ik ben de oudste speler van Avondpartij.' : 'Ik ben de jongste speler van Avondpartij.', right,
+          pool.filter(n => n !== W.oudste && n !== W.jongste),
+          old ? `${right} is de oudste van de ploeg.` : `${right} is de benjamin van de ploeg.`);
+      },
+      // Familie
+      () => {
+        const fam = [];
+        for (const v of W.vaderZoon || []) {
+          fam.push(['Mijn zoon speelt ook bij Avondpartij.', v.vader, `${v.vader} is de vader van ${v.zoon}.`]);
+          fam.push(['Mijn vader speelt ook bij Avondpartij.', v.zoon, `${v.zoon} is de zoon van ${v.vader}.`]);
+        }
+        for (const [a, b] of W.broers || []) {
+          const x = rnd([a, b]);
+          fam.push(['Mijn broer speelt ook bij Avondpartij.', x, `${a} en ${b} zijn broers.`]);
+        }
+        const f = rnd(fam);
+        if (!f) return null;
+        const family = new Set([...(W.vaderZoon || []).flatMap(v => [v.vader, v.zoon]), ...(W.broers || []).flat()]);
+        return make(f[0], f[1], pool.filter(n => !family.has(n)), f[2]);
+      },
+      // Rugnummers en bijnamen
+      () => {
+        const e = rnd(W.rugnummers || []);
+        if (!e) return null;
+        const right = e.spelers[0];
+        const variant = rnd(['bijnaam', 'nummer']);
+        const q = variant === 'bijnaam'
+          ? `Op mijn truitje staat '${e.bijnaam}'.`
+          : `Ik speel ${e.spelers.length > 1 ? 'meestal ' : ''}met rugnummer ${e.nummer}.`;
+        return make(q, right, pool.filter(n => !e.spelers.includes(n)),
+          `${right} is '${e.bijnaam}', met nummer ${e.nummer}.`);
+      },
+    ];
+
+    // Gewicht per soort vraag (zelfde volgorde als GEN): vragen uit de cijfers komen vaker,
+    // leeftijd en familie minder vaak omdat er daar maar een paar van zijn.
+    const WEIGHT = [3, 1, 3, 3, 3, 3, 2, 2, 3, 1, 1, 2];
+    const BAG = GEN.flatMap((g, i) => Array(WEIGHT[i] || 1).fill(i));
+    let last = '', lastGen = -1;
+    function newQuestion() {
+      let q = null;
+      for (let i = 0; i < 40 && (!q || q.q === last); i++) {
+        let gi = rnd(BAG);
+        while (gi === lastGen) gi = rnd(BAG);
+        q = GEN[gi]();
+        if (q) lastGen = gi;
+      }
+      if (!q) return;
+      last = q.q;
+      const face = n => {
+        const p = byName.get(n);
+        return p.face ? `<img src="assets/${esc(p.face)}" alt="" width="420" height="420">` : `<span class="mono" aria-hidden="true">${esc(initials(n))}</span>`;
+      };
+      qEl.textContent = q.q;
+      optsEl.innerHTML = q.options.map(n => `<li><button type="button" class="qopt" data-name="${esc(n)}">${face(n)}<span>${esc(n)}</span></button></li>`).join('');
+      resEl.innerHTML = '';
+      optsEl.dataset.right = q.right;
+      optsEl.dataset.explain = q.explain;
+    }
+
+    optsEl.addEventListener('click', e => {
+      const b = e.target.closest('.qopt');
+      if (!b || b.disabled) return;
+      const right = optsEl.dataset.right, ok = b.dataset.name === right;
+      optsEl.querySelectorAll('.qopt').forEach(o => {
+        o.disabled = true;
+        if (o.dataset.name === right) o.classList.add('is-right');
+        else if (o === b) o.classList.add('is-wrong');
+        else o.classList.add('is-dim');
+      });
+      resEl.innerHTML = `
+        <span class="quiz__verdict${ok ? '' : ' is-wrong'}">${ok ? 'Juist!' : 'Helaas, het was ' + esc(right) + '.'}</span>
+        <p class="quiz__explain">${esc(optsEl.dataset.explain)}</p>
+        <button type="button" class="btn btn--dark" id="quiz-nog">Nog een vraag</button>`;
+      $('#quiz-nog').addEventListener('click', () => {
+        newQuestion();
+        for (const el of [qEl, optsEl]) { el.classList.remove('quiz__fade'); void el.offsetWidth; el.classList.add('quiz__fade'); }
+        const first = optsEl.querySelector('.qopt');
+        if (first) first.focus();
+      });
+    });
+
+    // --- opbouwen en afbreken met de scroll ---
+    const seg = (p, a, b) => Math.min(1, Math.max(0, (p - a) / (b - a)));
+    let armed = true, raf = 0;
+    function update() {
+      raf = 0;
+      const r = section.getBoundingClientRect(), vh = window.innerHeight;
+      const p = Math.min(1, Math.max(0, (vh - r.top) / r.height));
+      if (!reduceMotion.matches) {
+        stage.style.setProperty('--a', seg(p, 0, .42).toFixed(3));
+        stage.style.setProperty('--b', seg(p, .4, .6).toFixed(3));
+        stage.style.setProperty('--c', seg(p, .55, .72).toFixed(3));
+        stage.style.setProperty('--d', seg(p, .68, .94).toFixed(3));
+      }
+      const live = reduceMotion.matches ? p > .3 : p > .9;
+      stage.classList.toggle('is-live', live);
+      document.body.classList.toggle('quiz-on', p > .3);
+      // Pas als de quiz helemaal afgebroken was, komt er bij de volgende keer een nieuwe vraag
+      if (p < .03) armed = true;
+      if (armed && p > .3) { armed = false; newQuestion(); }
+    }
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
   })();
 
   // ---------- Zwevend hoofd ----------
@@ -859,7 +1126,7 @@
     }
 
     function launch() {
-      if (document.hidden || document.querySelector("dialog[open]")) { schedule(5000); return; }
+      if (document.hidden || document.querySelector("dialog[open]") || document.body.classList.contains("quiz-on")) { schedule(5000); return; }
       const choices = faces.filter(p => p.name !== lastName);
       pl = pick(choices.length ? choices : faces);
       lastName = pl.name;
